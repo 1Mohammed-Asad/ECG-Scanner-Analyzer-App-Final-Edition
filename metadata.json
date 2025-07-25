@@ -1,0 +1,6 @@
+{
+  "name": "ECG Scanner Analyzer ultimate optimal version",
+  "description": "An AI-powered web application that analyzes ECG (Electrocardiogram) images to provide a preliminary assessment of cardiac health. Upload an ECG strip, and the app will use Gemini to identify key metrics and potential abnormalities.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

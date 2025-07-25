@@ -1,0 +1,41 @@
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecg_shared_postgres
+    environment:
+      POSTGRES_DB: ecg_shared_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - ecg_network
+
+  backend:
+    build: ./backend
+    container_name: ecg_backend_shared
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ecg_shared_db
+      - SECRET_KEY=your-secret-key-change-this-in-production
+      - FLASK_ENV=production
+    ports:
+      - "5001:5001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+    networks:
+      - ecg_network
+
+volumes:
+  postgres_data:
+
+networks:
+  ecg_network:
+    driver: bridge

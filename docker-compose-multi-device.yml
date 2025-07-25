@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Shared across all devices)
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: ecgscanner
+      POSTGRES_USER: ecguser
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepassword123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecguser -d ecgscanner"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ECG Scanner Backend (Accessible from any device on network)
+  backend:
+    build: ./backend
+    ports:
+      - "0.0.0.0:5001:5001"  # Bind to all interfaces for network access
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://ecguser:${DB_PASSWORD:-securepassword123}@postgres:5432/ecgscanner
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this}
+      - MAIL_SERVER=${MAIL_SERVER:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ecgscanner.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://*:5173,http://192.168.*.*:5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
